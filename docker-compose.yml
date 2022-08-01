@@ -1,0 +1,59 @@
+services:
+#  1、build mlflow image from scratch
+#  2、run mlflow container & start mlflow tracking server
+  mlflow:
+    build:
+      context: ./build-mlflow
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql_db
+      - minio_oss
+    restart: unless-stopped
+    image: mlflow-tracking-server:0.01
+    container_name: mlflow_tracking_server
+    ports:
+      - "15002:5002"
+
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio-host:9000
+    networks:
+      - mlflow-net
+#  artifact store
+  minio_oss:
+    hostname: minio-host
+    restart: unless-stopped
+    image: minio/minio:latest
+    container_name: minio_oss
+    volumes:
+      - /Users/link/docker-data/minio-data:/data
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=admin123456
+    command: server /data --console-address ":9001"
+    networks:
+      - mlflow-net
+
+#  backend store
+  mysql_db:
+    hostname: mysql-host
+    restart: unless-stopped
+    image: mysql:latest
+    container_name: mysql_db
+    ports:
+      - "33061:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - mlflow-net
+
+networks:
+  mlflow-net:
+    driver: bridge

@@ -1,0 +1,5 @@
+pymysql==1.0.2
+boto3==1.24.36
+mlflow==1.27.0
+minio==7.1.10
+cryptography==37.0.4
